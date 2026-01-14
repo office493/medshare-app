@@ -584,11 +584,9 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-module.exports = app;
+// サーバー起動
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+});
 
-// ローカル開発用
-if (process.env.NODE_ENV !== 'production') {
-    app.listen(PORT, () => {
-        console.log(`Server running at http://localhost:${PORT}`);
-    });
-}
+module.exports = app;

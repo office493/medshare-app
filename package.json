@@ -1,0 +1,26 @@
+{
+  "name": "medshare",
+  "version": "1.0.0",
+  "description": "医学部生専用 情報共有プラットフォーム",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "medical",
+    "student",
+    "sharing"
+  ],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "nodemailer": "^7.0.12",
+    "openai": "^6.16.0",
+    "resend": "^6.7.0"
+  }
+}

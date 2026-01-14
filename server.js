@@ -293,6 +293,211 @@ app.post('/api/login', async (req, res) => {
     });
 });
 
+// パスワードリセット要求
+app.post('/api/password-reset/request', async (req, res) => {
+    const { email } = req.body;
+
+    if (!email) {
+        return res.status(400).json({ success: false, message: 'メールアドレスを入力してください' });
+    }
+
+    // ユーザー存在確認
+    const { data: user } = await supabase
+        .from('users')
+        .select('id, nickname')
+        .eq('email', email)
+        .single();
+
+    if (!user) {
+        // セキュリティのため、存在しなくても成功を返す
+        return res.json({ success: true, message: 'パスワードリセット用のメールを送信しました' });
+    }
+
+    const token = generateToken();
+    const resetUrl = `${process.env.BASE_URL || 'http://localhost:3000'}/reset-password?token=${token}`;
+
+    // リセットトークンを保存（pending_usersテーブルを再利用）
+    await supabase.from('pending_users').delete().eq('email', email);
+    await supabase.from('pending_users').insert({
+        email,
+        password: 'reset',
+        nickname: user.nickname,
+        university_id: 'reset',
+        token
+    });
+
+    // メール送信
+    try {
+        await transporter.sendMail({
+            from: `"MedShare" <${process.env.GMAIL_USER}>`,
+            to: email,
+            subject: '【MedShare】パスワードリセット',
+            html: `
+                <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+                    <h2 style="color: #0891b2;">パスワードリセット</h2>
+                    <p>${user.nickname}さん</p>
+                    <p>以下のリンクをクリックして、新しいパスワードを設定してください。</p>
+                    <p style="margin: 30px 0;">
+                        <a href="${resetUrl}" style="background: #0891b2; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px;">パスワードを再設定する</a>
+                    </p>
+                    <p style="color: #666; font-size: 12px;">このリンクは1時間有効です。<br>心当たりがない場合は、このメールを無視してください。</p>
+                </div>
+            `
+        });
+        res.json({ success: true, message: 'パスワードリセット用のメールを送信しました' });
+    } catch (error) {
+        console.error('メール送信エラー:', error);
+        res.status(500).json({ success: false, message: 'メール送信に失敗しました' });
+    }
+});
+
+// パスワードリセットページ
+app.get('/reset-password', async (req, res) => {
+    const { token } = req.query;
+
+    if (!token) {
+        return res.send('<h1>無効なリンクです</h1>');
+    }
+
+    const { data: resetRequest } = await supabase
+        .from('pending_users')
+        .select('*')
+        .eq('token', token)
+        .eq('password', 'reset')
+        .single();
+
+    if (!resetRequest) {
+        return res.send(`
+            <html><head><meta charset="utf-8"><title>エラー</title></head>
+            <body style="font-family: sans-serif; text-align: center; padding: 50px;">
+                <h1 style="color: #ef4444;">無効なリンクです</h1>
+                <p>リンクが無効または期限切れです。</p>
+                <a href="/" style="color: #0891b2;">トップページに戻る</a>
+            </body></html>
+        `);
+    }
+
+    // 1時間チェック
+    const createdAt = new Date(resetRequest.created_at).getTime();
+    if (Date.now() - createdAt > 60 * 60 * 1000) {
+        await supabase.from('pending_users').delete().eq('token', token);
+        return res.send(`
+            <html><head><meta charset="utf-8"><title>期限切れ</title></head>
+            <body style="font-family: sans-serif; text-align: center; padding: 50px;">
+                <h1 style="color: #ef4444;">リンクの有効期限切れ</h1>
+                <p>再度パスワードリセットを申請してください。</p>
+                <a href="/" style="color: #0891b2;">トップページに戻る</a>
+            </body></html>
+        `);
+    }
+
+    res.send(`
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <title>パスワード再設定 - MedShare</title>
+            <style>
+                body { font-family: sans-serif; background: #f0fdfa; min-height: 100vh; display: flex; align-items: center; justify-content: center; margin: 0; }
+                .container { background: white; padding: 40px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); max-width: 400px; width: 90%; }
+                h1 { color: #0891b2; margin-bottom: 24px; }
+                input { width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; margin-bottom: 16px; box-sizing: border-box; font-size: 16px; }
+                input:focus { border-color: #0891b2; outline: none; }
+                button { width: 100%; padding: 14px; background: #0891b2; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; }
+                button:hover { background: #0e7490; }
+                .error { color: #ef4444; margin-bottom: 16px; display: none; }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h1>🔐 パスワード再設定</h1>
+                <p style="color: #666; margin-bottom: 24px;">${resetRequest.nickname}さん、新しいパスワードを入力してください。</p>
+                <div class="error" id="error"></div>
+                <input type="password" id="password" placeholder="新しいパスワード（6文字以上）">
+                <input type="password" id="confirmPassword" placeholder="パスワード確認">
+                <button onclick="resetPassword()">パスワードを変更</button>
+            </div>
+            <script>
+                async function resetPassword() {
+                    const password = document.getElementById('password').value;
+                    const confirmPassword = document.getElementById('confirmPassword').value;
+                    const error = document.getElementById('error');
+
+                    if (password.length < 6) {
+                        error.textContent = 'パスワードは6文字以上で入力してください';
+                        error.style.display = 'block';
+                        return;
+                    }
+                    if (password !== confirmPassword) {
+                        error.textContent = 'パスワードが一致しません';
+                        error.style.display = 'block';
+                        return;
+                    }
+
+                    try {
+                        const res = await fetch('/api/password-reset/confirm', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ token: '${token}', password })
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                            alert('パスワードを変更しました。ログインしてください。');
+                            window.location.href = '/';
+                        } else {
+                            error.textContent = data.message;
+                            error.style.display = 'block';
+                        }
+                    } catch (e) {
+                        error.textContent = 'エラーが発生しました';
+                        error.style.display = 'block';
+                    }
+                }
+            </script>
+        </body>
+        </html>
+    `);
+});
+
+// パスワードリセット確定
+app.post('/api/password-reset/confirm', async (req, res) => {
+    const { token, password } = req.body;
+
+    if (!token || !password) {
+        return res.status(400).json({ success: false, message: '無効なリクエストです' });
+    }
+
+    if (password.length < 6) {
+        return res.status(400).json({ success: false, message: 'パスワードは6文字以上で入力してください' });
+    }
+
+    const { data: resetRequest } = await supabase
+        .from('pending_users')
+        .select('*')
+        .eq('token', token)
+        .eq('password', 'reset')
+        .single();
+
+    if (!resetRequest) {
+        return res.status(400).json({ success: false, message: '無効または期限切れのリンクです' });
+    }
+
+    // パスワード更新
+    const { error } = await supabase
+        .from('users')
+        .update({ password: hashPassword(password) })
+        .eq('email', resetRequest.email);
+
+    if (error) {
+        console.error('パスワード更新エラー:', error);
+        return res.status(500).json({ success: false, message: 'パスワードの更新に失敗しました' });
+    }
+
+    // リセットトークン削除
+    await supabase.from('pending_users').delete().eq('token', token);
+
+    res.json({ success: true, message: 'パスワードを変更しました' });
+});
+
 // 投稿一覧取得
 app.get('/api/posts/:universityId/:year', async (req, res) => {
     const { universityId, year } = req.params;

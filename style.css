@@ -844,6 +844,21 @@ select:disabled {
     margin-top: 0.5rem;
 }
 
+.forgot-password-link {
+    text-align: center;
+    margin-top: 1rem;
+    font-size: 0.9rem;
+}
+
+.forgot-password-link a {
+    color: var(--primary-color);
+    text-decoration: none;
+}
+
+.forgot-password-link a:hover {
+    text-decoration: underline;
+}
+
 /* ユーザーメニュー */
 .user-menu {
     display: flex;

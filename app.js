@@ -1392,6 +1392,35 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // パスワードリセットフォーム
+    document.getElementById('forgot-password-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('reset-email').value.trim();
+
+        if (!email) {
+            showToast('メールアドレスを入力してください');
+            return;
+        }
+
+        showToast('送信中...');
+        try {
+            const response = await fetch('/api/password-reset/request', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email })
+            });
+            const data = await response.json();
+            if (data.success) {
+                showToast('パスワードリセット用のメールを送信しました');
+                hideForgotPassword();
+            } else {
+                showToast(data.message);
+            }
+        } catch (error) {
+            showToast('エラーが発生しました');
+        }
+    });
+
     // メール認証キャンセル
     document.getElementById('cancel-verify-btn').addEventListener('click', () => {
         document.getElementById('verify-modal').classList.remove('active');
@@ -1726,3 +1755,18 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 });
+
+// パスワードリセットフォームの表示/非表示
+function showForgotPassword() {
+    document.getElementById('login-form').classList.add('hidden');
+    document.getElementById('register-form').classList.add('hidden');
+    document.getElementById('forgot-password-form').classList.remove('hidden');
+    document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+}
+
+function hideForgotPassword() {
+    document.getElementById('forgot-password-form').classList.add('hidden');
+    document.getElementById('login-form').classList.remove('hidden');
+    document.getElementById('reset-email').value = '';
+    document.querySelector('.auth-tab[data-tab="login"]').classList.add('active');
+}

@@ -1101,14 +1101,28 @@ function updateSubjectSelect() {
     const posts = getPosts(currentUser.universityId, currentYear);
     const subjects = getSubjectsFromPosts(posts);
     const select = document.getElementById('post-subject-select');
+    const currentType = document.getElementById('post-type').value;
 
     // 既存のオプションをクリア（最初の2つは残す）
     while (select.options.length > 2) {
         select.remove(2);
     }
 
+    // 4年生以上 + 実習情報タブの場合、ポリクリを追加
+    const yearNum = parseInt(currentYear);
+    if (yearNum >= 4 && currentType === 'clinical') {
+        const polycliOption = document.createElement('option');
+        polycliOption.value = 'ポリクリ';
+        polycliOption.textContent = 'ポリクリ';
+        select.insertBefore(polycliOption, select.options[1]);
+    }
+
     // 科目を追加
     subjects.forEach(subject => {
+        // ポリクリが既に追加されている場合は重複を避ける
+        if (subject.name === 'ポリクリ' && yearNum >= 4 && currentType === 'clinical') {
+            return;
+        }
         const option = document.createElement('option');
         option.value = subject.name;
         option.textContent = subject.name;
@@ -1555,6 +1569,7 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.classList.add('active');
             document.getElementById('post-type').value = btn.dataset.type;
             updateAiGeneratorVisibility();
+            updateSubjectSelect(); // タブ切り替え時に科目リストを更新（ポリクリ表示用）
         });
     });
 

@@ -2027,3 +2027,8 @@ select:disabled {
         border-color: var(--border-color);
     }
 }
+
+/* ポリクリオプションの表示/非表示 */
+option.hidden {
+    display: none;
+}

@@ -573,6 +573,7 @@ function goToTimeline(year) {
     document.getElementById('timeline-screen').classList.add('active');
 
     renderPosts();
+    updatePolycliOption(); // ポリクリオプションの表示/非表示を更新
 }
 
 function goBack() {
@@ -1112,11 +1113,9 @@ function updateSubjectSelect() {
     }
 
     const yearNum = parseInt(currentYear);
-    console.log('updateSubjectSelect called:', { currentYear, yearNum, currentType });
 
     // 4年生以上 + 実習情報タブの場合、臨床実習(ポリクリ)を追加
     if (yearNum >= 4 && currentType === 'clinical') {
-        console.log('Adding ポリクリ option');
         const polycliOption = document.createElement('option');
         polycliOption.value = '臨床実習(ポリクリ)';
         polycliOption.textContent = '臨床実習(ポリクリ)';
@@ -1575,7 +1574,8 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.classList.add('active');
             document.getElementById('post-type').value = btn.dataset.type;
             updateAiGeneratorVisibility();
-            updateSubjectSelect(); // タブ切り替え時に科目リストを更新（ポリクリ表示用）
+            updateSubjectSelect();
+            updatePolycliOption(); // ポリクリオプションの表示/非表示を更新
         });
     });
 
@@ -1792,4 +1792,20 @@ function hideForgotPassword() {
     document.getElementById('login-form').classList.remove('hidden');
     document.getElementById('reset-email').value = '';
     document.querySelector('.auth-tab[data-tab="login"]').classList.add('active');
+}
+
+// 臨床実習(ポリクリ)オプションの表示/非表示
+function updatePolycliOption() {
+    const polycliOption = document.getElementById('polycli-option');
+    if (!polycliOption) return;
+
+    const yearNum = parseInt(currentYear);
+    const currentType = document.getElementById('post-type').value;
+
+    // 4年生以上 かつ 実習情報タブの場合のみ表示
+    if (yearNum >= 4 && currentType === 'clinical') {
+        polycliOption.classList.remove('hidden');
+    } else {
+        polycliOption.classList.add('hidden');
+    }
 }

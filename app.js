@@ -1103,18 +1103,22 @@ function updateSubjectSelect() {
     const select = document.getElementById('post-subject-select');
     const currentType = document.getElementById('post-type').value;
 
-    // 既存のオプションをクリア（最初の2つは残す）
+    // 「その他」オプションを保持
+    const otherOption = select.options[select.options.length - 1];
+
+    // 既存のオプションをクリア（最初の1つ「-- 科目を選択 --」と最後の「その他」は残す）
     while (select.options.length > 2) {
-        select.remove(2);
+        select.remove(1);
     }
 
-    // 4年生以上 + 実習情報タブの場合、臨床実習(ポリクリ)を追加
     const yearNum = parseInt(currentYear);
+
+    // 4年生以上 + 実習情報タブの場合、臨床実習(ポリクリ)を追加
     if (yearNum >= 4 && currentType === 'clinical') {
         const polycliOption = document.createElement('option');
         polycliOption.value = '臨床実習(ポリクリ)';
         polycliOption.textContent = '臨床実習(ポリクリ)';
-        select.insertBefore(polycliOption, select.options[1]);
+        select.insertBefore(polycliOption, otherOption);
     }
 
     // 科目を追加
@@ -1126,7 +1130,7 @@ function updateSubjectSelect() {
         const option = document.createElement('option');
         option.value = subject.name;
         option.textContent = subject.name;
-        select.insertBefore(option, select.options[1]); // 「その他」の前に挿入
+        select.insertBefore(option, otherOption); // 「その他」の前に挿入
     });
 }
 

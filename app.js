@@ -1108,19 +1108,19 @@ function updateSubjectSelect() {
         select.remove(2);
     }
 
-    // 4年生以上 + 実習情報タブの場合、ポリクリを追加
+    // 4年生以上 + 実習情報タブの場合、臨床実習(ポリクリ)を追加
     const yearNum = parseInt(currentYear);
     if (yearNum >= 4 && currentType === 'clinical') {
         const polycliOption = document.createElement('option');
-        polycliOption.value = 'ポリクリ';
-        polycliOption.textContent = 'ポリクリ';
+        polycliOption.value = '臨床実習(ポリクリ)';
+        polycliOption.textContent = '臨床実習(ポリクリ)';
         select.insertBefore(polycliOption, select.options[1]);
     }
 
     // 科目を追加
     subjects.forEach(subject => {
-        // ポリクリが既に追加されている場合は重複を避ける
-        if (subject.name === 'ポリクリ' && yearNum >= 4 && currentType === 'clinical') {
+        // 臨床実習(ポリクリ)が既に追加されている場合は重複を避ける
+        if (subject.name === '臨床実習(ポリクリ)' && yearNum >= 4 && currentType === 'clinical') {
             return;
         }
         const option = document.createElement('option');

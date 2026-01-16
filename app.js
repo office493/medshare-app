@@ -1112,9 +1112,11 @@ function updateSubjectSelect() {
     }
 
     const yearNum = parseInt(currentYear);
+    console.log('updateSubjectSelect called:', { currentYear, yearNum, currentType });
 
     // 4年生以上 + 実習情報タブの場合、臨床実習(ポリクリ)を追加
     if (yearNum >= 4 && currentType === 'clinical') {
+        console.log('Adding ポリクリ option');
         const polycliOption = document.createElement('option');
         polycliOption.value = '臨床実習(ポリクリ)';
         polycliOption.textContent = '臨床実習(ポリクリ)';
